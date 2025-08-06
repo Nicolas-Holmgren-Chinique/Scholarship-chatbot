@@ -1,0 +1,83 @@
+# === Operating System Files ===
+.DS_Store
+Thumbs.db
+
+# === Node.js ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+*.egg-info/
+.env
+.venv/
+venv/
+env/
+
+# === macOS/Linux Files ===
+*.swp
+*.swo
+*~
+.cache/
+.vscode/
+.idea/
+
+# === Logs and Temp Files ===
+*.log
+*.tmp
+*.bak
+*.backup
+
+# === Build / Dist ===
+dist/
+build/
+out/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+
+# === Git ===
+*.orig
+
+# === Misc ===
+coverage/
+htmlcov/
+*.cover
+*.tar.gz
+*.zip
+
+# === Virtual Environment / Containers ===
+.env/
+.envrc
+docker-compose.override.yml
+
+# === JetBrains IDEs ===
+*.iml
+.idea/
+
+# === VS Code ===
+.vscode/
+
+# === Test Output ===
+test-results/
+junit-report.xml
+
+# === SQLite DB ===
+*.sqlite3
+*.db
+
+# === Secrets ===
+secrets.*
+*.key
+*.pem
