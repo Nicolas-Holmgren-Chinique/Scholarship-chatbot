@@ -1,9 +1,11 @@
-.venv/
-.env
+# === Python ===
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
+*.pyc
+*.pkl
+*.egg-info/
 .Python
 build/
 develop-eggs/
@@ -17,12 +19,68 @@ parts/
 sdist/
 var/
 wheels/
-*.egg-info/
-.installed.cfg
 *.egg
+.installed.cfg
+
+# === Environment Variables ===
+.env
+.venv/
+venv/
+env/
+.env/
+.envrc
+
+# === Operating System Files ===
 .DS_Store
-.idea/
-.vscode/
+Thumbs.db
 *.swp
 *.swo
 *~
+
+# === IDEs ===
+.vscode/
+.idea/
+*.iml
+
+# === Logs and Temp Files ===
+*.log
+*.tmp
+*.bak
+*.backup
+
+# === SQLite DB ===
+*.sqlite3
+*.db
+db.sqlite3
+
+# === Node.js (if any) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Secrets ===
+secrets.*
+*.key
+*.pem
+
+# === Test Output ===
+test-results/
+junit-report.xml
+coverage/
+htmlcov/
+*.cover
+
+# === Build / Dist ===
+out/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.tar.gz
+*.zip
+
+# === Git ===
+*.orig

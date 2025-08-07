@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Setup
-st.set_page_config(page_title="Simple RAG Chatbot", page_icon="🤖")
+st.set_page_config(page_title="Scholi - AI Scholarship Assistant", page_icon="🎓")
 st.title("Scholi 🎓🤖 - Your AI Scholarship Assistant")
 
 # AWS Setup
