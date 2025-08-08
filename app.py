@@ -161,6 +161,14 @@ with st.sidebar:
     if st.button("🔄 Start Over", help="Reset the conversation and start fresh"):
         st.session_state.messages = []
         st.session_state.current_question = 1
+        st.session_state.show_welcome = False
+        st.session_state.welcome_timer = time.time()
+        st.session_state.typing_response = ""
+        st.session_state.typing_complete = True
+        st.session_state.processing_response = False
+        st.session_state.typing_text = ""
+        st.session_state.typing_index = 0
+        st.session_state.is_typing = False
         st.rerun()
     
     # Tips section
@@ -183,11 +191,41 @@ def setup_bedrock():
         region_name=os.getenv('AWS_DEFAULT_REGION')
     )
 
+# Define questions at module level
+questions = [
+    "What is your current cumulative GPA? (e.g., 3.2)",
+    "What is your declared major or intended field of study?",
+    "How many college-level units have you completed?",
+    "Are you enrolled full-time or part-time?",
+    "Do you plan to transfer to a 4-year university?",
+    "Have you completed the FAFSA application?",
+    "Do you identify with any specific communities? (e.g., Former Foster Youth, African-American, Hispanic/Latinx, Asian/Pacific Islander, Armenian, LGBTQ+, Veterans/Military family, Students with disabilities, Single parents, etc.)",
+    "Are you a California resident?",
+    "What are your educational and career goals?",
+    "Tell me about your clubs, certifications, and awards."
+]
+
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "current_question" not in st.session_state:
     st.session_state.current_question = 1
+if "show_welcome" not in st.session_state:
+    st.session_state.show_welcome = False
+if "welcome_timer" not in st.session_state:
+    st.session_state.welcome_timer = time.time()
+if "typing_response" not in st.session_state:
+    st.session_state.typing_response = ""
+if "typing_complete" not in st.session_state:
+    st.session_state.typing_complete = True
+if "processing_response" not in st.session_state:
+    st.session_state.processing_response = False
+if "typing_text" not in st.session_state:
+    st.session_state.typing_text = ""
+if "typing_index" not in st.session_state:
+    st.session_state.typing_index = 0
+if "is_typing" not in st.session_state:
+    st.session_state.is_typing = False
 
 # Check if AWS credentials are available
 try:
@@ -206,17 +244,36 @@ except Exception as e:
 col1, col2 = st.columns([3, 1])
 
 with col1:
-    # Welcome message for new users
-    if len(st.session_state.messages) == 0:
-        first_question = "What is your current cumulative GPA? (e.g., 3.2)"
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": (
-                "<h3>👋 Welcome!</h3>"
-                "<p>I'm here to help you find scholarships that match your profile. Let's start with a few questions to understand your background and goals.</p>"
-                f"<p><strong>First question:</strong> {first_question}</p>"
-            )
-        })
+    # Auto-show welcome message after 2 seconds for new users
+    if len(st.session_state.messages) == 0 and not st.session_state.show_welcome:
+        if time.time() - st.session_state.welcome_timer > 2:
+            st.session_state.show_welcome = True
+            first_question = "What is your current cumulative GPA? (e.g., 3.2)"
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": (
+                    "<h3>👋 Welcome!</h3>"
+                    "<p>I'm here to help you find scholarships that match your profile. Let's start with a few questions to understand your background and goals.</p>"
+                    f"<p><strong>First question:</strong> {first_question}</p>"
+                )
+            })
+            st.rerun()
+        else:
+            # Show typing indicator
+            st.markdown("""
+            <div class="chat-message assistant-message" style="color: #111;">
+                <strong>🎓 Scholarship Assistant:</strong><br>
+                <span style="animation: blink 1.5s infinite;">💬 typing...</span>
+            </div>
+            <style>
+            @keyframes blink {
+                0%, 50% { opacity: 1; }
+                51%, 100% { opacity: 0.3; }
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            time.sleep(0.5)
+            st.rerun()
 
     # Display chat history with enhanced styling
     for i, message in enumerate(st.session_state.messages):
@@ -228,48 +285,101 @@ with col1:
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.markdown(f"""
-            <div class="chat-message assistant-message" style="color: #111;">
-                <strong>🎓 Scholarship Assistant:</strong><br>
-                {message["content"]}
-            </div>
-            """, unsafe_allow_html=True)
+            # Show typing animation for questions only
+            if (i == len(st.session_state.messages) - 1 and st.session_state.is_typing and 
+                st.session_state.current_question < len(questions)):
+                displayed_text = st.session_state.typing_text[:st.session_state.typing_index]
+                st.markdown(f"""
+                <div class="chat-message assistant-message" style="color: #111;">
+                    <strong>🎓 Scholarship Assistant:</strong><br>
+                    {displayed_text}<span style="animation: blink 1s infinite;">|</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Continue typing
+                if st.session_state.typing_index < len(st.session_state.typing_text):
+                    st.session_state.typing_index += 2  # 2 characters at a time
+                    time.sleep(0.05)
+                    st.rerun()
+                else:
+                    # Typing complete
+                    st.session_state.is_typing = False
+                    st.session_state.messages[-1]["content"] = st.session_state.typing_text
+                    st.rerun()
+            else:
+                st.markdown(f"""
+                <div class="chat-message assistant-message" style="color: #111;">
+                    <strong>🎓 Scholarship Assistant:</strong><br>
+                    {message["content"]}
+                </div>
+                """, unsafe_allow_html=True)
 with col2:
     pass
-
-# Enhanced chat input
-st.markdown("### 💬 Your Response")
 
 if prompt := st.chat_input("Type your answer here..."):
     # Add user message with enhanced display
     st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.processing_response = True
+    st.rerun()  # Show user message immediately
+
+# Process response if needed
+if st.session_state.processing_response:
+    st.session_state.processing_response = False
     
     # Show processing indicator
     with st.spinner("🔍 Processing your response..."):
         try:
-            # Define questions
-            questions = [
-                "What is your current cumulative GPA? (e.g., 3.2)",
-                "What is your declared major or intended field of study?",
-                "How many college-level units have you completed?",
-                "Are you enrolled full-time or part-time?",
-                "Do you plan to transfer to a 4-year university?",
-                "Have you completed the FAFSA application?",
-"Do you identify with any specific communities? (e.g., Former Foster Youth, African-American, Hispanic/Latinx, Asian/Pacific Islander, Armenian, LGBTQ+, Veterans/Military family, Students with disabilities, Single parents, etc.)",
-                "Are you a California resident?",
-                "What are your educational and career goals?",
-                "Tell me about your clubs, certifications, and awards."
-            ]
+            # Questions are now defined at module level
             
             # Determine response logic
             if len(st.session_state.messages) <= 1:
                 next_question = questions[0]
                 prompt_text = f"You are a friendly scholarship assistant. Ask: 'Question 1 of 10: {next_question}'. Keep it warm and encouraging."
-            elif st.session_state.current_question < len(questions):
-                st.session_state.current_question += 1
-                next_question = questions[st.session_state.current_question - 1]
-                question_number = st.session_state.current_question
-                prompt_text = f"You are a scholarship assistant. Simply say 'Great!' and then ask: 'Question {question_number} of 10: {next_question}'. Be brief and direct."
+            elif st.session_state.current_question <= len(questions):
+                last_user_response = st.session_state.messages[-1]["content"]
+                current_q = questions[st.session_state.current_question - 1]
+                
+                # Check if user wants to go back to previous question
+                if "go back" in last_user_response.lower() or "last question" in last_user_response.lower():
+                    if st.session_state.current_question > 1:
+                        st.session_state.current_question -= 1
+                        prev_q = questions[st.session_state.current_question - 1]
+                        answer = f"Of course! Question {st.session_state.current_question} of 10: {prev_q}"
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        st.rerun()
+                    else:
+                        answer = f"We're already at the first question: Question {st.session_state.current_question} of 10: {current_q}"
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        st.rerun()
+                elif st.session_state.current_question < len(questions):
+                    next_q = questions[st.session_state.current_question]
+                    prompt_text = f"""You are a scholarship assistant. Respond to the student naturally.
+                    
+Previous question: {current_q}
+Student response: {last_user_response}
+                    
+If they need help: Explain briefly what you're asking for, then re-ask Question {st.session_state.current_question} of 10: {current_q}
+                    
+If gibberish: Re-ask Question {st.session_state.current_question} of 10: {current_q}
+                    
+If valid answer (including yes/no/not yet/etc): Say 'Great!' and ask Question {st.session_state.current_question + 1} of 10: {next_q}
+                    
+Do not re-ask the same question after giving advice. Move forward.
+                    Do not explain your reasoning. Respond directly to the student."""
+                else:
+                    # This is question 10 - after this we should go to scholarship analysis
+                    prompt_text = f"""You are a scholarship assistant. Respond to the student naturally.
+                    
+Previous question: {current_q}
+Student response: {last_user_response}
+                    
+If they need help: Explain briefly what you're asking for, then re-ask Question {st.session_state.current_question} of 10: {current_q}
+                    
+If gibberish: Re-ask Question {st.session_state.current_question} of 10: {current_q}
+                    
+If valid answer: Say 'Great! Let me analyze your profile and find matching scholarships.'
+                    
+Do not explain your reasoning. Respond directly to the student."""
             else:
                 # Analysis phase
                 user_answers = []
@@ -319,6 +429,16 @@ IMPORTANT: Always display the deadline prominently for each scholarship."""
                     )
                     
                     answer = response['output']['text']
+                    
+                    # Only increment question counter if model says "Great!" (valid response) OR if we're on question 10
+                    if st.session_state.current_question <= len(questions) and ("Great!" in answer or st.session_state.current_question == len(questions)):
+                        st.session_state.current_question += 1
+                        
+                    # If model says it will analyze scholarships, force the analysis
+                    if "analyze your profile" in answer.lower() or "find matching scholarships" in answer.lower():
+                        st.session_state.current_question = len(questions) + 1
+                        st.session_state.processing_response = True
+                    
                     break
                     
                 except Exception as e:
@@ -331,8 +451,21 @@ IMPORTANT: Always display the deadline prominently for each scholarship."""
                     else:
                         raise e
             
-            # Add assistant response
+            # Add assistant response (simplified to avoid typing animation issues)
             st.session_state.messages.append({"role": "assistant", "content": answer})
+            
+            # Scroll to top for scholarship results only
+            if st.session_state.current_question > len(questions):
+                st.markdown("""
+                <script>
+                setTimeout(function() {
+                    var messages = document.querySelectorAll('.chat-message.assistant-message');
+                    if (messages.length > 0) {
+                        messages[messages.length - 1].scrollIntoView({behavior: 'smooth', block: 'start'});
+                    }
+                }, 100);
+                </script>
+                """, unsafe_allow_html=True)
             
             # Show success message for completion
             if st.session_state.current_question > len(questions):
